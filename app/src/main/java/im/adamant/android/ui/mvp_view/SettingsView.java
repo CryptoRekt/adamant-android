@@ -14,6 +14,7 @@ public interface SettingsView extends MvpView {
     void setStoreKeyPairOption(boolean value);
     void setEnablePushOption(boolean value);
     void setAddressPushService(String address);
+    void setEnablePincodeOption(boolean value);
 
     @StateStrategyType(SkipStrategy.class)
     void callSaveSettingsService();

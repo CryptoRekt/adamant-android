@@ -4,7 +4,6 @@ package im.adamant.android.ui.fragments;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -13,6 +12,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 
 import butterknife.BindView;
+import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 import im.adamant.android.AdamantApplication;
 import im.adamant.android.BuildConfig;
@@ -69,8 +70,9 @@ public class SettingsScreen extends BaseFragment implements SettingsView {
     @BindView(R.id.fragment_settings_rv_list_of_nodes) RecyclerView nodeListView;
     @BindView(R.id.fragment_settings_et_new_node_address) EditText newNodeAddressView;
     @BindView(R.id.fragment_settings_sw_store_keypair) Switch storeKeypairView;
-    @BindView(R.id.fragment_settings_sw_push_notifications) Switch enablePushNotifications;
+    @BindView(R.id.fragment_settings_sw_push_notifications) Switch enablePushNotificationsView;
     @BindView(R.id.fragment_settings_et_push_service_address) EditText addressPushService;
+    @BindView(R.id.fragment_settings_sw_enable_pincode) Switch enablePincodeView;
 
     public SettingsScreen() {
         // Required empty public constructor
@@ -151,10 +153,16 @@ public class SettingsScreen extends BaseFragment implements SettingsView {
     public void onClickAddNewNode() {
         presenter.onClickAddNewNode(newNodeAddressView.getText().toString());
     }
+
     @OnClick(R.id.fragment_settings_btn_change_lang)
     public void onSelectLanguage() {
         android.support.v7.app.AlertDialog.Builder languageDialogBuilder = getLanguageDialogBuilder(supportedLocales);
         languageDialogBuilder.create().show();
+    }
+
+    @OnCheckedChanged(R.id.fragment_settings_sw_enable_pincode)
+    public void onChangeEnablePincode(CompoundButton button, boolean enabled){
+        presenter.onClickEnablePincode(enabled);
     }
 
     @Override
@@ -176,12 +184,17 @@ public class SettingsScreen extends BaseFragment implements SettingsView {
 
     @Override
     public void setEnablePushOption(boolean value) {
-        enablePushNotifications.setChecked(value);
+        enablePushNotificationsView.setChecked(value);
     }
 
     @Override
     public void setAddressPushService(String address) {
         addressPushService.setText(address);
+    }
+
+    @Override
+    public void setEnablePincodeOption(boolean value) {
+        enablePincodeView.setChecked(value);
     }
 
     @Override
@@ -191,7 +204,7 @@ public class SettingsScreen extends BaseFragment implements SettingsView {
             Context context = activity.getApplicationContext();
             Intent intent = new Intent(context, SaveSettingsService.class);
             intent.putExtra(SaveSettingsService.IS_SAVE_KEYPAIR, storeKeypairView.isChecked());
-            intent.putExtra(SaveSettingsService.IS_RECEIVE_NOTIFICATIONS, enablePushNotifications.isChecked());
+            intent.putExtra(SaveSettingsService.IS_RECEIVE_NOTIFICATIONS, enablePushNotificationsView.isChecked());
             intent.putExtra(SaveSettingsService.NOTIFICATION_SERVICE_ADDRESS, addressPushService.getText().toString());
 
             ServiceManager.runService(context, intent);

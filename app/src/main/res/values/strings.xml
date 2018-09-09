@@ -21,6 +21,8 @@
     <string name="activity_messages_tv_cost_text">Cost of message</string>
     <string name="activity_scan_qrcode_title">Scan QR code</string>
 
+    <string name="activity_pincode_enter_pincode">Enter pincode</string>
+
     <string name="bottom_menu_title_wallet">Wallet</string>
     <string name="bottom_menu_title_chats">Chats</string>
     <string name="bottom_menu_title_settings">Settings</string>
@@ -42,6 +44,7 @@
     <string name="fragment_settings_subscribe_to_push_notifications">Subscribe to push notifications\n
         (0.001 ADM for each change of the token)</string>
     <string name="fragment_settings_push_service_address">Notification service address</string>
+    <string name="fragment_settings_enable_pincode">Enable pincode protection</string>
 
     <string name="address_was_copied">Copied!</string>
     <string name="dialog_logout_title">Exit</string>

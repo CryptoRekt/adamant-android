@@ -23,6 +23,7 @@ import im.adamant.android.interactors.SaveKeypairInteractor;
 import im.adamant.android.helpers.ChatsStorage;
 import im.adamant.android.interactors.ServerNodeInteractor;
 import im.adamant.android.interactors.SubscribeToPushInteractor;
+import im.adamant.android.interactors.ValidatePinCodeInteractor;
 import im.adamant.android.services.AdamantBalanceUpdateService;
 import im.adamant.android.services.AdamantFirebaseMessagingService;
 import im.adamant.android.services.SaveContactsService;
@@ -33,6 +34,7 @@ import im.adamant.android.ui.CreateChatScreen;
 import im.adamant.android.ui.LoginScreen;
 import im.adamant.android.ui.MainScreen;
 import im.adamant.android.ui.MessagesScreen;
+import im.adamant.android.ui.PinCodeScreen;
 import im.adamant.android.ui.ScanQrCodeScreen;
 import im.adamant.android.ui.SplashScreen;
 import im.adamant.android.ui.mappers.LocalizedChatMapper;
@@ -341,6 +343,12 @@ public abstract class AppModule {
         return new SaveContactsInteractor(apiKvsProvider, chatsStorage, kvsHelper);
     }
 
+    @Singleton
+    @Provides
+    public static ValidatePinCodeInteractor provideValidatePincodeInteractor(KeyStoreCipher keyStoreCipher, Settings settings) {
+        return new ValidatePinCodeInteractor(keyStoreCipher, settings);
+    }
+
     //--Activities
 
     @ActivityScope
@@ -370,6 +378,10 @@ public abstract class AppModule {
     @ActivityScope
     @ContributesAndroidInjector(modules = {CompanionDetailScreenModule.class})
     public abstract CompanionDetailScreen createCompanionDetailInjector();
+
+    @ActivityScope
+    @ContributesAndroidInjector(modules = {PinCodeScreenModule.class})
+    public abstract PinCodeScreen createPinCodeScreenInjector();
 
 
     //--Services

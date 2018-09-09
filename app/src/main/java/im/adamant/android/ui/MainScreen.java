@@ -205,6 +205,16 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
                         finish();
                     }
                     break;
+
+                    case Screens.PINCODE_SCREEN: {
+                        Intent intent = new Intent(getApplicationContext(), PinCodeScreen.class);
+                        Bundle bundle = new Bundle();
+//                        bundle.putString(PinCodeScreen.ARG_MODE, (String)forward.getTransitionData());
+                        intent.putExtras(bundle);
+
+                        startActivity(intent);
+                    }
+                    break;
                 }
             } else if(command instanceof SystemMessage){
                 SystemMessage message = (SystemMessage) command;

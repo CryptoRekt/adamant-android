@@ -17,6 +17,8 @@ public class Settings {
     private static final String NOTIFICATION_TOKEN = "notification_token";
     private static final String ADDRESS_OF_NOTIFICATION_SERVICE = "address_of_notification_service";
     private static final String ENABLE_PUSH_NOTIFICATIONS = "enable_push_notifications";
+    private static final String ENABLE_PINCODE_PROTECTION = "enable_pincode_protection";
+    private static final String PINCODE = "pincode";
 
     private ObservableRxList<ServerNode> nodes = new ObservableRxList<>();
     private String accountKeypair = "";
@@ -24,6 +26,8 @@ public class Settings {
     private String notificationToken = "";
     private String addressOfNotificationService = "";
     private boolean enablePushNotifications;
+    private boolean enablePincodeProtection;
+    private String pincode;
 
     private SharedPreferences preferences;
 
@@ -35,6 +39,8 @@ public class Settings {
         notificationToken = this.preferences.getString(NOTIFICATION_TOKEN, "");
         addressOfNotificationService = this.preferences.getString(ADDRESS_OF_NOTIFICATION_SERVICE, BuildConfig.DEFAULT_NOTIFICATION_SERVICE_ADDRESS);
         enablePushNotifications = this.preferences.getBoolean(ENABLE_PUSH_NOTIFICATIONS, false);
+        enablePincodeProtection = this.preferences.getBoolean(ENABLE_PINCODE_PROTECTION, false);
+        pincode = this.preferences.getString(PINCODE, "");
 
         loadNodes();
     }
@@ -112,6 +118,30 @@ public class Settings {
         this.preferences
                 .edit()
                 .putBoolean(ENABLE_PUSH_NOTIFICATIONS, enablePushNotifications)
+                .apply();
+    }
+
+    public boolean isEnablePincodeProtection() {
+        return enablePincodeProtection;
+    }
+
+    public void setEnablePincodeProtection(boolean enablePincodeProtection) {
+        this.enablePincodeProtection = enablePincodeProtection;
+        this.preferences
+                .edit()
+                .putBoolean(ENABLE_PINCODE_PROTECTION, enablePincodeProtection)
+                .apply();
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public void setPincode(String pincode) {
+        this.pincode = pincode;
+        this.preferences
+                .edit()
+                .putString(PINCODE, pincode)
                 .apply();
     }
 

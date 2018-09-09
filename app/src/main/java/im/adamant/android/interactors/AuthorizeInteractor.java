@@ -69,7 +69,7 @@ public class AuthorizeInteractor {
                             throw new Exception("Account not stored!");
                         }
 
-                        KeyPair keyPair = keyStoreCipher.decrypt(Constants.ADAMANT_ACCOUNT_ALIAS, account);
+                        KeyPair keyPair = keyStoreCipher.decrypt(Constants.ADAMANT_ACCOUNT_ALIAS, account, KeyPair.class);
 
                         if (keyPair == null) {
                             throw new Exception("Account not decrypted!");

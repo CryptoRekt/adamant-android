@@ -4,42 +4,48 @@ import android.webkit.URLUtil;
 
 import com.arellomobile.mvp.InjectViewState;
 
+import java.util.Set;
+
+import im.adamant.android.Screens;
 import im.adamant.android.core.entities.ServerNode;
+import im.adamant.android.helpers.Settings;
 import im.adamant.android.interactors.SaveKeypairInteractor;
 import im.adamant.android.interactors.ServerNodeInteractor;
 import im.adamant.android.interactors.SubscribeToPushInteractor;
+import im.adamant.android.interactors.ValidatePinCodeInteractor;
 import im.adamant.android.ui.mvp_view.SettingsView;
 import io.reactivex.disposables.CompositeDisposable;
+import ru.terrakok.cicerone.Router;
 
 @InjectViewState
 public class SettingsPresenter extends  BasePresenter<SettingsView> {
-    private SaveKeypairInteractor saveKeypairInteractor;
-    private SubscribeToPushInteractor subscribeToPushInteractor;
+    private Settings settings;
     private ServerNodeInteractor serverNodeInteractor;
+    private Router router;
 
     public SettingsPresenter(
-            SaveKeypairInteractor saveKeypairInteractor,
-            SubscribeToPushInteractor subscribeToPushInteractor,
+            Settings settings,
             ServerNodeInteractor serverNodeInteractor,
+            Router router,
             CompositeDisposable subscriptions
     ) {
         super(subscriptions);
-        this.saveKeypairInteractor = saveKeypairInteractor;
-        this.subscribeToPushInteractor = subscribeToPushInteractor;
+        this.settings = settings;
         this.serverNodeInteractor = serverNodeInteractor;
+        this.router = router;
     }
 
     @Override
     public void attachView(SettingsView view) {
         super.attachView(view);
         getViewState().setStoreKeyPairOption(
-                saveKeypairInteractor.isKeyPairMustBeStored()
+                settings.isKeyPairMustBeStored()
         );
         getViewState().setEnablePushOption(
-                subscribeToPushInteractor.isEnabledPush()
+                settings.isEnablePushNotifications()
         );
         getViewState().setAddressPushService(
-                subscribeToPushInteractor.getPushServiceAddress()
+                settings.getAddressOfNotificationService()
         );
     }
 
@@ -57,5 +63,14 @@ public class SettingsPresenter extends  BasePresenter<SettingsView> {
 
     public void onClickDeleteNode(ServerNode serverNode){
         serverNodeInteractor.deleteNode(serverNode);
+    }
+
+    public void onClickEnablePincode(boolean enabled) {
+        if (enabled){
+            router.navigateTo(Screens.PINCODE_SCREEN);
+        } else {
+            settings.setPincode("");
+            settings.setEnablePincodeProtection(false);
+        }
     }
 }
