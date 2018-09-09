@@ -33,6 +33,7 @@ import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 import im.adamant.android.AdamantApplication;
 import im.adamant.android.BuildConfig;
+import im.adamant.android.Constants;
 import im.adamant.android.R;
 import im.adamant.android.presenters.SettingsPresenter;
 import im.adamant.android.services.SaveSettingsService;
@@ -40,6 +41,8 @@ import im.adamant.android.ui.adapters.ServerNodeAdapter;
 import im.adamant.android.ui.mvp_view.SettingsView;
 import io.reactivex.disposables.Disposable;
 import sm.euzee.github.com.servicemanager.ServiceManager;
+
+import static android.app.Activity.RESULT_CANCELED;
 
 /**
  * A simple {@link Fragment} subclass.

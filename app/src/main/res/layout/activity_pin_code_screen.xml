@@ -8,7 +8,7 @@ android:background="@color/colorPrimary"
 tools:context=".ui.PinCodeScreen">
 
 <ImageView
-    android:id="@+id/profile_image"
+    android:id="@+id/activity_pincode_iv_profile_image"
     android:layout_width="84dp"
     android:layout_height="84dp"
     android:layout_centerHorizontal="true"
@@ -16,10 +16,10 @@ tools:context=".ui.PinCodeScreen">
     android:src="@mipmap/ic_launcher"/>
 
 <TextView
-    android:id="@+id/profile_name"
+    android:id="@+id/activity_pincode_tv_suggestion"
     android:layout_width="256dp"
     android:layout_height="wrap_content"
-    android:layout_below="@+id/profile_image"
+    android:layout_below="@+id/activity_pincode_iv_profile_image"
     android:layout_centerHorizontal="true"
     android:layout_marginTop="36dp"
     android:fontFamily="sans-serif-thin"
@@ -30,21 +30,34 @@ tools:context=".ui.PinCodeScreen">
     android:textSize="34sp" />
 
 <com.andrognito.pinlockview.IndicatorDots
-    android:id="@+id/indicator_dots"
+    android:id="@+id/activity_pincode_id_indicator_dots"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_below="@id/profile_name"
+    android:layout_below="@id/activity_pincode_tv_suggestion"
     android:layout_centerHorizontal="true"
     app:dotFilledBackground="@drawable/pincode_dot"
     android:layout_marginTop="36dp" />
 
-<com.andrognito.pinlockview.PinLockView
-    android:id="@+id/pin_lock_view"
-    android:layout_width="wrap_content"
+<TextView
+    android:id="@+id/activity_pincode_tv_error"
+    android:layout_width="256dp"
     android:layout_height="wrap_content"
-    android:layout_below="@id/indicator_dots"
+    android:layout_below="@+id/activity_pincode_id_indicator_dots"
     android:layout_centerHorizontal="true"
     android:layout_marginTop="16dp"
+    android:fontFamily="sans-serif-thin"
+    android:gravity="center"
+    android:maxLines="3"
+    android:textColor="@color/error"
+    android:textSize="12sp" />
+
+<com.andrognito.pinlockview.PinLockView
+    android:id="@+id/activity_pincode_plv_keyboard"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_below="@id/activity_pincode_tv_error"
+    android:layout_centerHorizontal="true"
+    android:layout_marginTop="36dp"
     app:keypadButtonSize="72dp"
     app:keypadShowDeleteButton="true"
     app:keypadTextColor="@color/colorPrimaryDark"

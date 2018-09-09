@@ -22,6 +22,7 @@
     <string name="activity_scan_qrcode_title">Scan QR code</string>
 
     <string name="activity_pincode_enter_pincode">Enter pincode</string>
+    <string name="activity_pincode_enter_new_pincode">Enter new pincode</string>
 
     <string name="bottom_menu_title_wallet">Wallet</string>
     <string name="bottom_menu_title_chats">Chats</string>
@@ -60,6 +61,9 @@
     <string name="empty_message">Message cannot be empty</string>
     <string name="wrong_node_address">Node\'s address has incorrect format</string>
     <string name="unsupported_message_type">Unsupported message type: %s</string>
+    <string name="empty_pincode">PIN-code can not be empty</string>
+    <string name="wrong_pincode">Wrong PIN-code</string>
+    <string name="overflow_attempts_entering_pincode">Attempts to enter a pincode are finished, try again in a minute</string>
 
     <!--NOTIFICATIONS-->
     <string name="adamant_system_notification_channel">Important operation</string>

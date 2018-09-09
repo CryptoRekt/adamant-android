@@ -1,19 +1,81 @@
 package im.adamant.android.presenters;
 
+import android.os.Bundle;
+
 import com.arellomobile.mvp.InjectViewState;
 import com.arellomobile.mvp.MvpPresenter;
 
+import im.adamant.android.R;
+import im.adamant.android.helpers.LoggerHelper;
 import im.adamant.android.interactors.ValidatePinCodeInteractor;
 import im.adamant.android.ui.mvp_view.PinCodeView;
+import io.reactivex.Completable;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 @InjectViewState
-public class PinCodePresenter extends MvpPresenter<PinCodeView> {
+public class PinCodePresenter extends BasePresenter<PinCodeView> {
     private ValidatePinCodeInteractor pinCodeInteractor;
-    private CompositeDisposable subscriptions;
+    private PinCodeView.MODE mode = PinCodeView.MODE.VERIFY;
 
     public PinCodePresenter(ValidatePinCodeInteractor pinCodeInteractor, CompositeDisposable subscriptions) {
+        super(subscriptions);
         this.pinCodeInteractor = pinCodeInteractor;
-        this.subscriptions = subscriptions;
+    }
+
+    public void setMode(PinCodeView.MODE mode) {
+        this.mode = mode;
+        switch (mode){
+            case CREATE: {
+                getViewState().setSuggestion(R.string.activity_pincode_enter_new_pincode);
+            }
+            break;
+            case VERIFY: {
+                getViewState().setSuggestion(R.string.activity_pincode_enter_pincode);
+            }
+            break;
+        }
+    }
+
+    public void onInputPincodeWasCompleted(String pinCode) {
+        PinCodeView viewState = getViewState();
+        switch (mode){
+            case CREATE: {
+                Disposable subscription = pinCodeInteractor
+                        .createPincode(pinCode)
+                        .subscribeOn(Schedulers.computation())
+                        .subscribe(
+                                () -> {
+                                    Bundle bundle = new Bundle();
+                                    bundle.putBoolean(PinCodeView.ARG_CREATED, true);
+                                    viewState.close(bundle);
+                                },
+                                error -> LoggerHelper.e("PINCODE", error.getMessage(), error)
+                        );
+                subscriptions.add(subscription);
+            }
+            break;
+            case VERIFY: {
+                Disposable subscription = pinCodeInteractor
+                        .verifyPincode(pinCode)
+                        .subscribeOn(Schedulers.computation())
+                        .subscribe(
+                                (verified) -> {
+                                    if (verified) {
+                                        Bundle bundle = new Bundle();
+                                        bundle.putBoolean(PinCodeView.ARG_VERIFIED, true);
+                                        viewState.close(bundle);
+                                    } else {
+                                        //TODO: Обработка ошибок
+                                        viewState.showError(R.string.wrong_pincode);
+                                    }
+                                },
+                                error -> LoggerHelper.e("PINCODE", error.getMessage(), error)
+                        );
+                subscriptions.add(subscription);
+            }
+            break;
+        }
     }
 }

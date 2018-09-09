@@ -1,20 +1,27 @@
 package im.adamant.android.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.andrognito.pinlockview.IndicatorDots;
+import com.andrognito.pinlockview.PinLockListener;
 import com.andrognito.pinlockview.PinLockView;
 import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.arellomobile.mvp.presenter.ProvidePresenter;
 
+import java.io.Serializable;
+
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import butterknife.BindView;
 import dagger.android.AndroidInjection;
 import im.adamant.android.R;
+import im.adamant.android.helpers.LoggerHelper;
 import im.adamant.android.presenters.PinCodePresenter;
 import im.adamant.android.ui.mvp_view.PinCodeView;
 
@@ -33,8 +40,28 @@ public class PinCodeScreen extends BaseActivity implements PinCodeView {
         return presenterProvider.get();
     }
 
-    private PinLockView mPinLockView;
-    private IndicatorDots mIndicatorDots;
+    @BindView(R.id.activity_pincode_plv_keyboard) PinLockView pinLockView;
+    @BindView(R.id.activity_pincode_id_indicator_dots) IndicatorDots indicatorDots;
+    @BindView(R.id.activity_pincode_tv_suggestion) TextView suggestionView;
+
+    private PinLockListener mPinLockListener = new PinLockListener() {
+        @Override
+        public void onComplete(String pin) {
+            if (presenter != null){
+                presenter.onInputPincodeWasCompleted(pin);
+            }
+        }
+
+        @Override
+        public void onEmpty() {
+            Toast.makeText(getApplicationContext(), R.string.empty_pincode, Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        public void onPinChange(int pinLength, String intermediatePin) {
+            LoggerHelper.d("typing", "typing");
+        }
+    };
 
     @Override
     public int getLayoutId() {
@@ -54,24 +81,45 @@ public class PinCodeScreen extends BaseActivity implements PinCodeView {
         AndroidInjection.inject(this);
         super.onCreate(savedInstanceState);
 
-        mPinLockView = (PinLockView) findViewById(R.id.pin_lock_view);
-        mIndicatorDots = (IndicatorDots) findViewById(R.id.indicator_dots);
-
-        mPinLockView.attachIndicatorDots(mIndicatorDots);
-//        mPinLockView.setPinLockListener(mPinLockListener);
+        pinLockView.attachIndicatorDots(indicatorDots);
+        pinLockView.setPinLockListener(mPinLockListener);
 
 
-        //mPinLockView.setCustomKeySet(new int[]{2, 3, 1, 5, 9, 6, 7, 0, 8, 4});
-        //mPinLockView.enableLayoutShuffling();
+        //pinLockView.setCustomKeySet(new int[]{2, 3, 1, 5, 9, 6, 7, 0, 8, 4});
+        //pinLockView.enableLayoutShuffling();
 
-        mPinLockView.setPinLength(4);
+        pinLockView.setPinLength(4);
 
-        mIndicatorDots.setIndicatorType(IndicatorDots.IndicatorType.FILL_WITH_ANIMATION);
+        indicatorDots.setIndicatorType(IndicatorDots.IndicatorType.FILL_WITH_ANIMATION);
+
+        Intent intent = getIntent();
+
+        if (intent == null){return;}
+        Bundle extras = intent.getExtras();
+
+        if (extras == null){return;}
+        MODE mode = (MODE) extras.getSerializable(ARG_MODE);
+
+        if (mode == null){return;}
+        presenter.setMode(mode);
 
     }
 
     @Override
-    public void setPinCodeMode(MODE mode) {
+    public void setSuggestion(int resourceId) {
+        suggestionView.setText(resourceId);
+    }
+
+    @Override
+    public void close(Bundle bundle) {
+        Intent intent = new Intent();
+        intent.putExtras(bundle);
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+
+    @Override
+    public void showError(int resourceId) {
 
     }
 }

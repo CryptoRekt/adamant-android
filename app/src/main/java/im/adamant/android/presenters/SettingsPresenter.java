@@ -13,6 +13,8 @@ import im.adamant.android.interactors.SaveKeypairInteractor;
 import im.adamant.android.interactors.ServerNodeInteractor;
 import im.adamant.android.interactors.SubscribeToPushInteractor;
 import im.adamant.android.interactors.ValidatePinCodeInteractor;
+import im.adamant.android.ui.PinCodeScreen;
+import im.adamant.android.ui.mvp_view.PinCodeView;
 import im.adamant.android.ui.mvp_view.SettingsView;
 import io.reactivex.disposables.CompositeDisposable;
 import ru.terrakok.cicerone.Router;
@@ -47,6 +49,9 @@ public class SettingsPresenter extends  BasePresenter<SettingsView> {
         getViewState().setAddressPushService(
                 settings.getAddressOfNotificationService()
         );
+        getViewState().setEnablePincodeOption(
+                settings.isEnablePincodeProtection()
+        );
     }
 
     public void onClickAddNewNode(String nodeUrl) {
@@ -67,7 +72,7 @@ public class SettingsPresenter extends  BasePresenter<SettingsView> {
 
     public void onClickEnablePincode(boolean enabled) {
         if (enabled){
-            router.navigateTo(Screens.PINCODE_SCREEN);
+            router.navigateTo(Screens.PINCODE_SCREEN, PinCodeView.MODE.CREATE);
         } else {
             settings.setPincode("");
             settings.setEnablePincodeProtection(false);

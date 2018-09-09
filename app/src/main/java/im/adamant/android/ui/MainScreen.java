@@ -24,12 +24,14 @@ import dagger.android.AndroidInjection;
 import dagger.android.AndroidInjector;
 import dagger.android.DispatchingAndroidInjector;
 import dagger.android.support.HasSupportFragmentInjector;
+import im.adamant.android.Constants;
 import im.adamant.android.R;
 import im.adamant.android.Screens;
 import im.adamant.android.presenters.MainPresenter;
 import im.adamant.android.ui.adapters.FragmentsAdapter;
 import im.adamant.android.ui.fragments.BaseFragment;
 import im.adamant.android.ui.mvp_view.MainView;
+import im.adamant.android.ui.mvp_view.PinCodeView;
 import im.adamant.android.ui.mvp_view.WalletView;
 import ru.terrakok.cicerone.Navigator;
 import ru.terrakok.cicerone.NavigatorHolder;
@@ -135,6 +137,15 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
         navigatorHolder.removeNavigator();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Fragment item = mainAdapterReference.getItem(content.getCurrentItem());
+
+        if (item != null){
+            item.onActivityResult(requestCode, resultCode, data);
+        }
+    }
 
     @Override
     public AndroidInjector<Fragment> supportFragmentInjector() {
@@ -207,12 +218,25 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
                     break;
 
                     case Screens.PINCODE_SCREEN: {
-                        Intent intent = new Intent(getApplicationContext(), PinCodeScreen.class);
-                        Bundle bundle = new Bundle();
-//                        bundle.putString(PinCodeScreen.ARG_MODE, (String)forward.getTransitionData());
-                        intent.putExtras(bundle);
+                        PinCodeView.MODE mode = (PinCodeView.MODE) forward.getTransitionData();
 
-                        startActivity(intent);
+                        if (mode != null){
+                            Intent intent = new Intent(getApplicationContext(), PinCodeScreen.class);
+                            Bundle bundle = new Bundle();
+                            bundle.putSerializable(PinCodeScreen.ARG_MODE, mode);
+                            intent.putExtras(bundle);
+
+                            switch (mode){
+                                case CREATE: {
+                                    startActivityForResult(intent, Constants.PINCODE_CREATE_RESULT);
+                                }
+                                break;
+                                case VERIFY: {
+                                    startActivityForResult(intent, Constants.PINCODE_VERIFY_RESULT);
+                                }break;
+                            }
+                        }
+
                     }
                     break;
                 }
