@@ -3,6 +3,7 @@ package im.adamant.android.dagger;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import im.adamant.android.core.AdamantApi;
 import im.adamant.android.core.AdamantApiWrapper;
 import im.adamant.android.core.encryption.Encryptor;
 import im.adamant.android.core.encryption.AdamantKeyGenerator;
@@ -11,6 +12,7 @@ import im.adamant.android.core.kvs.ApiKvsProvider;
 import im.adamant.android.helpers.AdamantAddressProcessor;
 import im.adamant.android.helpers.KvsHelper;
 import im.adamant.android.helpers.NaivePublicKeyStorageImpl;
+import im.adamant.android.helpers.PinCodeHelper;
 import im.adamant.android.helpers.Settings;
 import im.adamant.android.helpers.PublicKeyStorage;
 import im.adamant.android.interactors.AccountInteractor;
@@ -152,6 +154,12 @@ public abstract class AppModule {
 
     @Singleton
     @Provides
+    public static PinCodeHelper providePincodeHelper(Settings settings, KeyStoreCipher keyStoreCipher) {
+        return new PinCodeHelper(settings, keyStoreCipher);
+    }
+
+    @Singleton
+    @Provides
     public static MessageFactoryProvider provideMessageFactoryProvider(
             AdamantAddressProcessor adamantAddressProcessor,
             Encryptor encryptor,
@@ -247,9 +255,10 @@ public abstract class AppModule {
             AdamantApiWrapper api,
             AdamantKeyGenerator keyGenerator,
             KeyStoreCipher keyStoreCipher,
+            PinCodeHelper pinCodeHelper,
             Settings settings
     ) {
-        return new AuthorizeInteractor(api, keyGenerator, keyStoreCipher, settings);
+        return new AuthorizeInteractor(api, keyGenerator, keyStoreCipher, pinCodeHelper, settings);
     }
 
     @Singleton
@@ -345,8 +354,13 @@ public abstract class AppModule {
 
     @Singleton
     @Provides
-    public static ValidatePinCodeInteractor provideValidatePincodeInteractor(KeyStoreCipher keyStoreCipher, Settings settings) {
-        return new ValidatePinCodeInteractor(keyStoreCipher, settings);
+    public static ValidatePinCodeInteractor provideValidatePincodeInteractor(
+            KeyStoreCipher keyStoreCipher,
+            PinCodeHelper pinCodeHelper,
+            AdamantApiWrapper api,
+            Settings settings
+    ) {
+        return new ValidatePinCodeInteractor(keyStoreCipher, settings, pinCodeHelper, api);
     }
 
     //--Activities

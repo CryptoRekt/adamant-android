@@ -28,6 +28,7 @@ import im.adamant.android.core.responses.Authorization;
 import im.adamant.android.helpers.LoggerHelper;
 import im.adamant.android.helpers.Settings;
 import im.adamant.android.interactors.AuthorizeInteractor;
+import im.adamant.android.ui.mvp_view.PinCodeView;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
@@ -90,11 +91,15 @@ public class SplashScreen extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if ((requestCode == RESULT_OK) && (resultCode == Constants.PINCODE_VERIFY_RESULT)) {
-            if (data == null){
-                LoggerHelper.e("PINCODE", "WRONG PINCODE");
-                //TODO: Необходимо продумать механизм возврата результата:  лучще специальный токен
-                //PincodeVerificator проверяет введенный код и генерит специальный код, который передается из PincodeScreen и проверяется вызвавшим его клиентом
+        if ((resultCode == RESULT_OK) && (requestCode == Constants.PINCODE_VERIFY_RESULT)) {
+            if (data == null || data.getExtras() == null){return;}
+            Bundle bundle = data.getExtras();
+
+            if (bundle.getBoolean(PinCodeView.ARG_VERIFIED, false)) {
+                Context applicationContext = getApplicationContext();
+                WeakReference<SplashScreen> thisReference = new WeakReference<>(this);
+
+                restoreAuthorization(applicationContext, thisReference);
             }
         }
     }

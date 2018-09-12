@@ -6,6 +6,7 @@ import com.arellomobile.mvp.InjectViewState;
 import com.arellomobile.mvp.MvpPresenter;
 
 import im.adamant.android.R;
+import im.adamant.android.core.exceptions.PincodeInvalidException;
 import im.adamant.android.helpers.LoggerHelper;
 import im.adamant.android.interactors.ValidatePinCodeInteractor;
 import im.adamant.android.ui.mvp_view.PinCodeView;
@@ -61,17 +62,23 @@ public class PinCodePresenter extends BasePresenter<PinCodeView> {
                         .verifyPincode(pinCode)
                         .subscribeOn(Schedulers.computation())
                         .subscribe(
-                                (verified) -> {
-                                    if (verified) {
-                                        Bundle bundle = new Bundle();
-                                        bundle.putBoolean(PinCodeView.ARG_VERIFIED, true);
-                                        viewState.close(bundle);
-                                    } else {
-                                        //TODO: Обработка ошибок
-                                        viewState.showError(R.string.wrong_pincode);
-                                    }
+                                () -> {
+                                    Bundle bundle = new Bundle();
+                                    bundle.putBoolean(PinCodeView.ARG_VERIFIED, true);
+                                    viewState.close(bundle);
                                 },
-                                error -> LoggerHelper.e("PINCODE", error.getMessage(), error)
+                                error -> {
+                                    if (error instanceof PincodeInvalidException) {
+                                        PincodeInvalidException invalidException = (PincodeInvalidException)error;
+                                        switch (invalidException.getReason()){
+                                            case NOT_MATCH: {
+                                                viewState.showError(R.string.wrong_pincode);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    LoggerHelper.e("PINCODE", error.getMessage(), error);
+                                }
                         );
                 subscriptions.add(subscription);
             }

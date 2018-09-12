@@ -8,8 +8,11 @@ import im.adamant.android.Constants;
 import im.adamant.android.core.AdamantApiWrapper;
 import im.adamant.android.core.encryption.AdamantKeyGenerator;
 import im.adamant.android.core.encryption.KeyStoreCipher;
+import im.adamant.android.core.exceptions.IncompatibleSignatureException;
 import im.adamant.android.core.responses.Authorization;
 
+import im.adamant.android.helpers.LoggerHelper;
+import im.adamant.android.helpers.PinCodeHelper;
 import im.adamant.android.helpers.Settings;
 import im.adamant.android.rx.ObservableRxList;
 import io.github.novacrypto.bip39.MnemonicValidator;
@@ -29,16 +32,20 @@ public class AuthorizeInteractor {
     private AdamantKeyGenerator keyGenerator;
     private KeyStoreCipher keyStoreCipher;
     private Settings settings;
+    private PinCodeHelper pinCodeHelper;
+
 
     public AuthorizeInteractor(
             AdamantApiWrapper api,
             AdamantKeyGenerator keyGenerator,
             KeyStoreCipher keyStoreCipher,
+            PinCodeHelper pinCodeHelper,
             Settings settings
     ) {
         this.api = api;
         this.keyGenerator = keyGenerator;
         this.keyStoreCipher = keyStoreCipher;
+        this.pinCodeHelper = pinCodeHelper;
         this.settings = settings;
     }
 
@@ -48,9 +55,22 @@ public class AuthorizeInteractor {
                     .observeOn(AndroidSchedulers.mainThread())
                     .doOnNext(authorization -> {
                         if (settings.isKeyPairMustBeStored()){
-                            String account = keyStoreCipher.encrypt(Constants.ADAMANT_ACCOUNT_ALIAS, api.getKeyPair());
+                            KeyPair keyPair = api.getKeyPair();
+
+                            PinCodeHelper.SignedKeyPair signedKeyPair = null;
+                            if (settings.isEnablePincodeProtection()){
+                                signedKeyPair = pinCodeHelper.buildSignedKeyPair(keyPair);
+                            } else {
+                                signedKeyPair = pinCodeHelper.buildUnsignedKeyPair(keyPair);
+                            }
+
+                            String account = keyStoreCipher.encrypt(Constants.ADAMANT_ACCOUNT_ALIAS, signedKeyPair);
                             settings.setAccountKeypair(account);
                         }
+                    })
+                    .onErrorResumeNext(error -> {
+                        LoggerHelper.e("authorization", error.getMessage(), error);
+                        return Flowable.just(new Authorization());
                     });
         }catch (Exception ex){
             ex.printStackTrace();
@@ -69,13 +89,17 @@ public class AuthorizeInteractor {
                             throw new Exception("Account not stored!");
                         }
 
-                        KeyPair keyPair = keyStoreCipher.decrypt(Constants.ADAMANT_ACCOUNT_ALIAS, account, KeyPair.class);
+                        PinCodeHelper.SignedKeyPair signedKeyPair = keyStoreCipher.decrypt(
+                                Constants.ADAMANT_ACCOUNT_ALIAS,
+                                account,
+                                PinCodeHelper.SignedKeyPair.class
+                        );
 
-                        if (keyPair == null) {
+                        if (signedKeyPair == null) {
                             throw new Exception("Account not decrypted!");
                         }
 
-                        return keyPair;
+                        return pinCodeHelper.restoreKeyPairFromSignedKeypair(signedKeyPair);
                     }
                 })
                .subscribeOn(Schedulers.computation())

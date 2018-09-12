@@ -7,6 +7,7 @@ import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
@@ -22,6 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -116,6 +119,53 @@ public class KeyStoreCipher {
         }
 
         return decryptedKeyPair;
+    }
+
+    public  <T> String signDataByPincode(String alias, T data, String pinCode) {
+        if (data == null || pinCode == null){return "";}
+        String json = pinCode + gson.toJson(data);
+        byte[] jsonBytes = json.getBytes();
+
+        Signature sig = null;
+        try {
+            alias = KEY_ALIAS_PREFIX + alias;
+
+            KeyPair securityKeyPair = getKeyPair(alias);
+
+            sig = Signature.getInstance("SHA1WithRSA");
+            sig.initSign(securityKeyPair.getPrivate());
+            sig.update(jsonBytes);
+            byte[] signatureBytes = sig.sign();
+            return Base64.encodeToString(signatureBytes, Base64.NO_WRAP | Base64.NO_PADDING);
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
+    public <T> boolean validateSign(String alias, T data, String pinCode, String signForVerify) {
+        if (data == null || pinCode == null){return false;}
+        String json = pinCode + gson.toJson(data);
+        byte[] jsonBytes = json.getBytes();
+
+        Signature sig = null;
+        try {
+            alias = KEY_ALIAS_PREFIX + alias;
+
+            KeyPair securityKeyPair = getKeyPair(alias);
+
+            sig = Signature.getInstance("SHA1WithRSA");
+
+            sig.initVerify(securityKeyPair.getPublic());
+            sig.update(jsonBytes);
+
+            return sig.verify(signForVerify.getBytes());
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     private KeyPair getKeyPair(String alias) throws NoSuchAlgorithmException , NoSuchProviderException, InvalidAlgorithmParameterException {

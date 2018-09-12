@@ -31,6 +31,7 @@ public class SaveKeypairInteractor {
 
             if (value){
                 try {
+                    //TODO: Sign by pincode
                     if (api.isAuthorized()){
                         String account = keyStoreCipher.encrypt(
                                 Constants.ADAMANT_ACCOUNT_ALIAS,

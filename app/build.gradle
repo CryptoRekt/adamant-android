@@ -23,6 +23,9 @@ android {
         buildConfigField "String", "WELCOME_MESSAGE_ADDR", "\"U15423595369615486571\""
         buildConfigField "String", "MESSAGE_CTNCR_ADDR", "\"U7047165086065693428\""
         buildConfigField "boolean", "RELEASE_LOG", "false"
+        buildConfigField "int", "MAX_WRONG_PINCODE_ATTEMPTS", "3"
+        buildConfigField "int", "DELAY_BETWEEN_PINCODE_ATTEMPTS", "120000"
+
     }
 
     buildTypes {
