@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="im.adamant.android">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -16,7 +17,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        >
         <activity android:name=".ui.SplashScreen"
             android:theme="@style/AppTheme.Launcher">
             <intent-filter>
@@ -27,10 +29,10 @@
         </activity>
         <activity
             android:name=".ui.LoginScreen"
-            android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="stateUnchanged|adjustResize" />
         <activity
             android:name=".ui.MessagesScreen"
+            android:theme="@style/AppTheme.WithActionBar"
             android:exported="true">
 
             <!--
@@ -51,17 +53,23 @@
         </activity>
         <activity
             android:name=".ui.CreateChatScreen"
+            android:theme="@style/AppTheme.WithActionBar"
             android:exported="false"
             android:label="@string/activity_chats_action_create_new" />
-        <activity android:name=".ui.MainScreen" />
+        <activity
+            android:name=".ui.MainScreen"
+            android:screenOrientation="portrait"
+            />
         <activity
             android:name=".ui.ScanQrCodeScreen"
             android:exported="false"
             android:label="@string/activity_scan_qrcode_title" />
         <activity
             android:name=".ui.PinCodeScreen"
-            android:exported="false"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:exported="false"/>
+        <activity
+            android:name=".ui.CompanionDetailScreen"
+            android:theme="@style/AppTheme.WithActionBar" />
         <activity android:name=".ui.CompanionDetailScreen" />
 
         <service

@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 
 import im.adamant.android.core.entities.Transaction;
 import im.adamant.android.ui.messages_support.entities.FallbackMessage;
-import im.adamant.android.ui.messages_support.SupportedMessageTypes;
+import im.adamant.android.ui.messages_support.SupportedMessageListContentType;
 
 public class FallbackMessageBuilder implements MessageBuilder<FallbackMessage> {
 
@@ -16,14 +16,23 @@ public class FallbackMessageBuilder implements MessageBuilder<FallbackMessage> {
     }
 
     @Override
-    public FallbackMessage build(Transaction transaction, String decryptedMessage, boolean isISayed, long date, String companionId) {
+    public FallbackMessage build(
+            Transaction transaction,
+            String decryptedMessage,
+            boolean isISayed,
+            long date,
+            String companionId,
+            String ownerPublicKey
+    ) {
         FallbackMessage message = new FallbackMessage();
-        message.setSupportedType(SupportedMessageTypes.FALLBACK);
+        message.setSupportedType(SupportedMessageListContentType.FALLBACK);
         message.setiSay(isISayed);
-        message.setDate(date);
+        message.setTimestamp(date);
         message.setCompanionId(companionId);
+        message.setOwnerPublicKey(ownerPublicKey);
 
         if (transaction != null){
+            message.setOwnerPublicKey(transaction.getSenderPublicKey());
             message.setProcessed(true);
             message.setTransactionId(transaction.getId());
         }

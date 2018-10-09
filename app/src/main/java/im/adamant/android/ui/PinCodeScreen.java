@@ -13,6 +13,9 @@ import com.andrognito.pinlockview.PinLockView;
 import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.arellomobile.mvp.presenter.ProvidePresenter;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
 import java.io.Serializable;
 
 import javax.inject.Inject;

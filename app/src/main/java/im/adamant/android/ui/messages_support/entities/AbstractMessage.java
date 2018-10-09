@@ -1,20 +1,26 @@
 package im.adamant.android.ui.messages_support.entities;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+import android.graphics.Bitmap;
+
+import androidx.annotation.NonNull;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Objects;
 
-import im.adamant.android.ui.messages_support.SupportedMessageTypes;
+import im.adamant.android.ui.messages_support.SupportedMessageListContentType;
 
-public abstract class AbstractMessage implements Serializable, Comparable<AbstractMessage> {
-    private SupportedMessageTypes supportedType = SupportedMessageTypes.UNDEFINED;
+public abstract class AbstractMessage implements MessageListContent, Serializable, Comparable<AbstractMessage> {
+    private SupportedMessageListContentType supportedType = SupportedMessageListContentType.UNDEFINED;
     private boolean iSay;
-    private long date;
+    private long timestamp;
     private boolean processed;
     private String transactionId;
     private String companionId;
+    private String ownerPublicKey;
+
+    private Date date;
 
     public AbstractMessage() {
         //This is a temporary identifier so that messages that are not confirmed in the blockchain do not merge into one
@@ -23,12 +29,12 @@ public abstract class AbstractMessage implements Serializable, Comparable<Abstra
 
     public abstract String getShortedMessage(Context context, int preferredLimit);
 
-    public long getDate() {
-        return date;
+    public long getTimestamp() {
+        return timestamp;
     }
 
-    public void setDate(long date) {
-        this.date = date;
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public boolean isProcessed() {
@@ -63,17 +69,38 @@ public abstract class AbstractMessage implements Serializable, Comparable<Abstra
         this.companionId = companionId;
     }
 
-    public SupportedMessageTypes getSupportedType() {
+    @Override
+    public SupportedMessageListContentType getSupportedType() {
         return supportedType;
     }
 
-    public void setSupportedType(SupportedMessageTypes supportedType) {
+    @Override
+    public void setSupportedType(SupportedMessageListContentType supportedType) {
         this.supportedType = supportedType;
+    }
+
+    public String getOwnerPublicKey() {
+        return ownerPublicKey;
+    }
+
+    public void setOwnerPublicKey(String ownerPublicKey) {
+        this.ownerPublicKey = ownerPublicKey;
+    }
+
+    public Date getDate() {
+        if (date == null){
+            date = new Date(timestamp);
+        }
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 
     @Override
     public int compareTo(@NonNull AbstractMessage message) {
-        long dateDiff = date - message.date;
+        long dateDiff = timestamp - message.timestamp;
         if((dateDiff) > 0) {
             return 1;
         } else if (dateDiff == 0){

@@ -1,6 +1,5 @@
 package im.adamant.android.ui;
 
-import android.app.ActionBar;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -9,25 +8,33 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.TextView;
 
-import com.arellomobile.mvp.MvpAppCompatActivity;
+import com.arellomobile.mvp.MvpDelegate;
 import com.franmontiel.localechanger.LocaleChanger;
 
+import androidx.appcompat.app.AppCompatActivity;
 import butterknife.ButterKnife;
 import im.adamant.android.R;
 import im.adamant.android.services.AdamantBalanceUpdateService;
 import im.adamant.android.services.ServerNodesPingService;
 
 import static android.content.pm.PackageManager.GET_META_DATA;
+/**
+ * This class has been redesigned to work with the Moxy framework.
+ * This is necessary because if you use the MvpAppCompatActivity class, then the syntax highlighting breaks.
+ * Because there is a code from the support library.
+ * */
+public abstract class BaseActivity extends AppCompatActivity {
+    private MvpDelegate<? extends BaseActivity> mMvpDelegate;
 
-public abstract class BaseActivity extends MvpAppCompatActivity {
     protected AdamantBalanceUpdateService balanceUpdateService;
     private ServiceConnection pingServiceConnection;
     private ServiceConnection admBalanceServiceConnection;
 
     private TextView titleView;
+    private TextView subTitleView;
+    private View customTitleView;
 
     public abstract int getLayoutId();
 
@@ -39,8 +46,11 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
-                WindowManager.LayoutParams.FLAG_SECURE);
+        getMvpDelegate().onCreate(savedInstanceState);
+
+        //TODO: deny automatic screenshot but allow screenshot triggered by user
+//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+//                WindowManager.LayoutParams.FLAG_SECURE);
 
         setContentView(getLayoutId());
         ButterKnife.bind(this);
@@ -48,7 +58,7 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
         createCustomTitle();
 
         if (withBackButton()){
-            android.support.v7.app.ActionBar supportActionBar = getSupportActionBar();
+            androidx.appcompat.app.ActionBar supportActionBar = getSupportActionBar();
             if (supportActionBar != null) {
                 supportActionBar.setHomeButtonEnabled(true);
                 supportActionBar.setDisplayHomeAsUpEnabled(true);
@@ -57,8 +67,17 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+
+        getMvpDelegate().onAttach();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+
+        getMvpDelegate().onAttach();
 
         initConnections();
 
@@ -67,6 +86,14 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
 
         Intent admBalanceIntent = new Intent(this, AdamantBalanceUpdateService.class);
         bindService(admBalanceIntent, admBalanceServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        getMvpDelegate().onSaveInstanceState(outState);
+        getMvpDelegate().onDetach();
     }
 
     @Override
@@ -86,6 +113,24 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+
+        getMvpDelegate().onDetach();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        getMvpDelegate().onDestroyView();
+
+        if (isFinishing()) {
+            getMvpDelegate().onDestroy();
+        }
+    }
+
+    @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return super.onSupportNavigateUp();
@@ -95,7 +140,30 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     public void setTitle(CharSequence title) {
         if (titleView != null){
             titleView.setText(title);
+            rebuildTitleView();
         }
+    }
+
+    public void setSubTitle(CharSequence subTitle) {
+        if (subTitleView != null){
+            subTitleView.setText(subTitle);
+            rebuildTitleView();
+        }
+    }
+
+    private void rebuildTitleView() {
+        if (subTitleView == null || titleView == null){return;}
+
+        String title = titleView.getText().toString();
+        String subTitle = subTitleView.getText().toString();
+        boolean hideSubview = (subTitle.isEmpty()) || (title.equalsIgnoreCase(subTitle));
+
+        if (hideSubview){
+            subTitleView.setVisibility(View.GONE);
+        } else {
+            subTitleView.setVisibility(View.VISIBLE);
+        }
+
     }
 
     private void initConnections() {
@@ -143,24 +211,25 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     }
 
     private void createCustomTitle() {
-        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             // Disable the default and enable the custom
             actionBar.setDisplayShowTitleEnabled(false);
             actionBar.setDisplayShowCustomEnabled(true);
-            View customView = getLayoutInflater().inflate(R.layout.custom_action_bar, null);
+            customTitleView = getLayoutInflater().inflate(R.layout.custom_action_bar, null);
 
-            titleView = customView.findViewById(R.id.actionbarTitle);
+            titleView = customTitleView.findViewById(R.id.actionbarTitle);
+            subTitleView = customTitleView.findViewById(R.id.actionbarSubTitle);
 
             // Set the on click listener for the title
-            titleView.setOnClickListener(new View.OnClickListener() {
+            customTitleView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     onClickTitle();
                 }
             });
             // Apply the custom view
-            actionBar.setCustomView(customView);
+            actionBar.setCustomView(customTitleView);
         }
     }
 
@@ -168,5 +237,15 @@ public abstract class BaseActivity extends MvpAppCompatActivity {
     protected void attachBaseContext(Context newBase) {
         newBase = LocaleChanger.configureBaseContext(newBase);
         super.attachBaseContext(newBase);
+    }
+
+    /**
+     * @return The {@link MvpDelegate} being used by this Activity.
+     */
+    public MvpDelegate getMvpDelegate() {
+        if (mMvpDelegate == null) {
+            mMvpDelegate = new MvpDelegate<>(this);
+        }
+        return mMvpDelegate;
     }
 }

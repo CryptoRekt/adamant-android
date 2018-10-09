@@ -1,69 +1,62 @@
 package im.adamant.android.ui.messages_support.holders;
 
 import android.content.Context;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.github.curioustechizen.ago.RelativeTimeTextView;
-
 import java.util.Locale;
 
 import im.adamant.android.R;
+import im.adamant.android.avatars.Avatar;
 import im.adamant.android.helpers.AdamantAddressProcessor;
-import im.adamant.android.ui.messages_support.entities.AbstractMessage;
+import im.adamant.android.helpers.HtmlHelper;
 import im.adamant.android.ui.messages_support.entities.FallbackMessage;
-import im.adamant.android.ui.messages_support.SupportedMessageTypes;
+import im.adamant.android.ui.messages_support.SupportedMessageListContentType;
+import im.adamant.android.ui.messages_support.entities.MessageListContent;
 
 public class FallbackMessageViewHolder extends AbstractMessageViewHolder {
-    private ImageView processedView;
     private TextView messageView;
-    private RelativeTimeTextView dateView;
-    private AdamantAddressProcessor adamantAddressProcessor;
+    private ImageView processedView;
+    private View contentView;
 
-    public FallbackMessageViewHolder(Context context, View v, AdamantAddressProcessor adamantAddressProcessor) {
-        super(context, v);
+    public FallbackMessageViewHolder(Context context, View v, AdamantAddressProcessor adamantAddressProcessor, Avatar avatar) {
+        super(context, v, adamantAddressProcessor, avatar);
 
-        this.adamantAddressProcessor = adamantAddressProcessor;
+        LayoutInflater inflater = LayoutInflater.from(context);
+        contentView = inflater.inflate(R.layout.list_subitem_fallback_message, contentBlock, false);
+        contentBlock.addView(contentView);
 
-        processedView = itemView.findViewById(R.id.list_item_message_processed);
-        messageView = itemView.findViewById(R.id.list_item_message_text);
-        dateView = itemView.findViewById(R.id.list_item_message_date);
+        processedView = contentView.findViewById(R.id.list_item_message_processed);
+
+        messageView = contentView.findViewById(R.id.list_item_message_text);
+        messageView.setMovementMethod(LinkMovementMethod.getInstance());
 
     }
 
     @Override
-    public void bind(AbstractMessage message) {
-        if (message != null){
+    public void bind(MessageListContent message) {
+        boolean isCorruptedMessage = (message == null) || (message.getSupportedType() != SupportedMessageListContentType.FALLBACK);
 
-            if (message.getSupportedType() != SupportedMessageTypes.FALLBACK){
-                emptyView();
-                return;
-            }
-
-            FallbackMessage fallbackMessage = (FallbackMessage)message;
-
-            messageView.setText(
-                    fallbackMessage.getHtmlFallBackMessage(adamantAddressProcessor)
-            );
-
-            dateView.setReferenceTime(message.getDate());
-
-            if (message.isProcessed()){
-                processedView.setImageResource(R.drawable.ic_processed);
-            } else {
-                processedView.setImageResource(R.drawable.ic_not_processed);
-            }
-
-            if (message.isiSay()){
-                iSayedLayoutModification();
-            } else {
-                companionSayedModification();
-            }
-
-        } else {
+        if (isCorruptedMessage) {
             emptyView();
+            return;
         }
+
+        super.bind(message);
+
+        FallbackMessage fallbackMessage = (FallbackMessage) message;
+        Spanned messageText = fallbackMessage.getHtmlFallBackMessage(adamantAddressProcessor);
+        if (messageText == null || messageText.length() == 0){
+            messageText = HtmlHelper.fromHtml(resolveFallbackMessage(fallbackMessage));
+        }
+
+        messageView.setText(messageText);
+
+        displayProcessedStatus(processedView, fallbackMessage);
     }
 
     private String resolveFallbackMessage(FallbackMessage message) {
@@ -79,17 +72,4 @@ public class FallbackMessageViewHolder extends AbstractMessageViewHolder {
         return messageText;
     }
 
-    private void iSayedLayoutModification(){
-        processedView.setVisibility(View.VISIBLE);
-    }
-
-    private void companionSayedModification(){
-        processedView.setVisibility(View.GONE);
-    }
-
-    private void emptyView() {
-        messageView.setText("");
-        processedView.setImageResource(R.drawable.ic_not_processed);
-        dateView.setReferenceTime(System.currentTimeMillis());
-    }
 }

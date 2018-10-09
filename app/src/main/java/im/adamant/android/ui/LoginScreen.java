@@ -29,7 +29,6 @@ import im.adamant.android.ui.mvp_view.LoginView;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.util.ArrayList;
 
 import javax.inject.Inject;

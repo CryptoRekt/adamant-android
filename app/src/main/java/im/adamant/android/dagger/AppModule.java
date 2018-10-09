@@ -2,13 +2,28 @@ package im.adamant.android.dagger;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 
 import im.adamant.android.core.AdamantApi;
+import dagger.multibindings.IntoMap;
+import im.adamant.android.avatars.Avatar;
+import im.adamant.android.avatars.AvatarGraphics;
+import im.adamant.android.avatars.AvatarThemesProvider;
+import im.adamant.android.avatars.CachedAvatar;
+import im.adamant.android.avatars.RoundWithBorderAvatar;
+import im.adamant.android.avatars.SquareAvatar;
 import im.adamant.android.core.AdamantApiWrapper;
 import im.adamant.android.core.encryption.Encryptor;
 import im.adamant.android.core.encryption.AdamantKeyGenerator;
 import im.adamant.android.core.encryption.KeyStoreCipher;
 import im.adamant.android.core.kvs.ApiKvsProvider;
+import im.adamant.android.currencies.AdamantCurrencyInfoDriver;
+import im.adamant.android.currencies.BinanceCoinInfoDriver;
+import im.adamant.android.currencies.CurrencyInfoDriver;
+import im.adamant.android.currencies.EthereumCurrencyInfoDriver;
+import im.adamant.android.currencies.SupportedCurrencyType;
+import im.adamant.android.currencies.SupportedCurrencyTypeKey;
 import im.adamant.android.helpers.AdamantAddressProcessor;
 import im.adamant.android.helpers.KvsHelper;
 import im.adamant.android.helpers.NaivePublicKeyStorageImpl;
@@ -26,6 +41,7 @@ import im.adamant.android.helpers.ChatsStorage;
 import im.adamant.android.interactors.ServerNodeInteractor;
 import im.adamant.android.interactors.SubscribeToPushInteractor;
 import im.adamant.android.interactors.ValidatePinCodeInteractor;
+import im.adamant.android.presenters.MainPresenter;
 import im.adamant.android.services.AdamantBalanceUpdateService;
 import im.adamant.android.services.AdamantFirebaseMessagingService;
 import im.adamant.android.services.SaveContactsService;
@@ -52,14 +68,16 @@ import com.goterl.lazycode.lazysodium.SodiumAndroid;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Module;
 import dagger.Provides;
 import dagger.android.ContributesAndroidInjector;
 import dagger.android.support.AndroidSupportInjectionModule;
-import im.adamant.android.ui.messages_support.SupportedMessageTypes;
+import im.adamant.android.ui.messages_support.SupportedMessageListContentType;
 import im.adamant.android.ui.messages_support.factories.AdamantBasicMessageFactory;
 import im.adamant.android.ui.messages_support.factories.AdamantPushSubscriptionMessageFactory;
 import im.adamant.android.ui.messages_support.factories.EthereumTransferMessageFactory;
@@ -68,6 +86,7 @@ import im.adamant.android.ui.messages_support.factories.MessageFactoryProvider;
 import io.github.novacrypto.bip39.MnemonicGenerator;
 import io.github.novacrypto.bip39.SeedCalculator;
 import io.github.novacrypto.bip39.wordlists.English;
+import io.reactivex.disposables.CompositeDisposable;
 import ru.terrakok.cicerone.Cicerone;
 import ru.terrakok.cicerone.NavigatorHolder;
 import ru.terrakok.cicerone.Router;
@@ -79,6 +98,45 @@ public abstract class AppModule {
     @Provides
     public static Gson provideGson() {
         return new Gson();
+    }
+
+    @Singleton
+    @Provides
+    public static AvatarThemesProvider provideAvatarThemes() {
+        return new AvatarThemesProvider();
+    }
+
+    @Singleton
+    @Provides
+    public static AvatarGraphics provideAvatarGraphics(AvatarThemesProvider avatarThemesProvider) {
+        return new AvatarGraphics(avatarThemesProvider);
+    }
+
+    @Singleton
+    @Provides
+    public static Avatar provideAvatar(Context context, AvatarGraphics graphics){
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+
+        int borderSizePx = (int)TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                1.0f,
+                displayMetrics
+        );
+
+        int paddingSizePx = (int)TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                8.0f,
+                displayMetrics
+        );
+
+        return new CachedAvatar(
+                new RoundWithBorderAvatar(
+                        new SquareAvatar(graphics),
+                        paddingSizePx,
+                        borderSizePx
+                ),
+                1024 * 1024 * 10 // 10Mb
+        );
     }
 
     @Singleton
@@ -163,27 +221,28 @@ public abstract class AppModule {
     public static MessageFactoryProvider provideMessageFactoryProvider(
             AdamantAddressProcessor adamantAddressProcessor,
             Encryptor encryptor,
-            AdamantApiWrapper api
+            AdamantApiWrapper api,
+            Avatar avatar
     ) {
         MessageFactoryProvider provider = new MessageFactoryProvider();
 
         provider.registerFactory(
-                SupportedMessageTypes.ADAMANT_BASIC,
-                new AdamantBasicMessageFactory(adamantAddressProcessor, encryptor, api)
+                SupportedMessageListContentType.ADAMANT_BASIC,
+                new AdamantBasicMessageFactory(adamantAddressProcessor, encryptor, api, avatar)
         );
 
         provider.registerFactory(
-                SupportedMessageTypes.FALLBACK,
-                new FallbackMessageFactory(adamantAddressProcessor)
+                SupportedMessageListContentType.FALLBACK,
+                new FallbackMessageFactory(adamantAddressProcessor, avatar)
         );
 
         provider.registerFactory(
-                SupportedMessageTypes.ETHEREUM_TRANSFER,
-                new EthereumTransferMessageFactory(adamantAddressProcessor)
+                SupportedMessageListContentType.ETHEREUM_TRANSFER,
+                new EthereumTransferMessageFactory(adamantAddressProcessor, avatar)
         );
 
         provider.registerFactory(
-                SupportedMessageTypes.ADAMANT_SUBSCRIBE_ON_NOTIFICATION,
+                SupportedMessageListContentType.ADAMANT_SUBSCRIBE_ON_NOTIFICATION,
                 new AdamantPushSubscriptionMessageFactory(encryptor, api)
         );
 
@@ -203,8 +262,8 @@ public abstract class AppModule {
 
     @Singleton
     @Provides
-    public static TransactionToChatMapper providesTransactionsToChatMapper(AdamantApiWrapper api) {
-        return new TransactionToChatMapper(api);
+    public static TransactionToChatMapper providesTransactionsToChatMapper(AdamantApiWrapper api, PublicKeyStorage publicKeyStorage) {
+        return new TransactionToChatMapper(api, publicKeyStorage);
     }
 
     @Singleton
@@ -266,9 +325,10 @@ public abstract class AppModule {
     public static AccountInteractor provideAccountInteractor(
             AdamantApiWrapper api,
             Settings settings,
-            ChatsStorage chatsStorage
+            ChatsStorage chatsStorage,
+            Map<SupportedCurrencyType, CurrencyInfoDriver> infoDrivers
     ) {
-        return new AccountInteractor(api, settings, chatsStorage);
+        return new AccountInteractor(api, settings, chatsStorage, infoDrivers);
     }
 
     @Singleton
@@ -363,6 +423,34 @@ public abstract class AppModule {
         return new ValidatePinCodeInteractor(keyStoreCipher, settings, pinCodeHelper, api);
     }
 
+    @IntoMap
+    @SupportedCurrencyTypeKey(SupportedCurrencyType.ADM)
+    @Singleton
+    @Provides
+    public static CurrencyInfoDriver provideAdamantInfoDriver(AdamantApiWrapper api, ChatsStorage chatStorage) {
+        AdamantCurrencyInfoDriver driver = new AdamantCurrencyInfoDriver(api);
+        driver.setChatStorage(chatStorage);
+
+        return driver;
+    }
+
+    //TODO: Don't forget inject ChatStorage
+    @IntoMap
+    @SupportedCurrencyTypeKey(SupportedCurrencyType.ETH)
+    @Singleton
+    @Provides
+    public static CurrencyInfoDriver provideEthereumInfoDriver() {
+        return new EthereumCurrencyInfoDriver();
+    }
+
+    @IntoMap
+    @SupportedCurrencyTypeKey(SupportedCurrencyType.BNB)
+    @Singleton
+    @Provides
+    public static CurrencyInfoDriver provideBinanceInfoDriver() {
+        return new BinanceCoinInfoDriver();
+    }
+
     //--Activities
 
     @ActivityScope
@@ -419,4 +507,25 @@ public abstract class AppModule {
     @ServiceScope
     @ContributesAndroidInjector(modules = {SaveSettingsServiceModule.class})
     public abstract SaveSettingsService createSaveSettingsService();
+
+
+    //--presenters
+
+    @Singleton
+    @Provides
+    @Named("main")
+    public static CompositeDisposable provideComposite() {
+        return new CompositeDisposable();
+    }
+
+    @Singleton
+    @Provides
+    public static MainPresenter provideMainPresenter(
+            Router router,
+            AccountInteractor accountInteractor,
+            RefreshChatsInteractor refreshChatsInteractor,
+            @Named("main") CompositeDisposable compositeDisposable
+    ){
+        return new MainPresenter(router, accountInteractor, refreshChatsInteractor, compositeDisposable);
+    }
 }

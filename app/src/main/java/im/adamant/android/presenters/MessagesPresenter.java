@@ -5,6 +5,7 @@ import com.arellomobile.mvp.InjectViewState;
 
 import im.adamant.android.Screens;
 import im.adamant.android.core.AdamantApi;
+import im.adamant.android.core.AdamantApiWrapper;
 import im.adamant.android.core.exceptions.NotAuthorizedException;
 import im.adamant.android.helpers.BalanceConvertHelper;
 import im.adamant.android.helpers.LoggerHelper;
@@ -14,8 +15,9 @@ import im.adamant.android.interactors.SendMessageInteractor;
 import im.adamant.android.helpers.ChatsStorage;
 import im.adamant.android.ui.entities.Chat;
 import im.adamant.android.ui.messages_support.entities.AbstractMessage;
-import im.adamant.android.ui.messages_support.SupportedMessageTypes;
+import im.adamant.android.ui.messages_support.SupportedMessageListContentType;
 import im.adamant.android.ui.messages_support.entities.AdamantBasicMessage;
+import im.adamant.android.ui.messages_support.entities.MessageListContent;
 import im.adamant.android.ui.messages_support.factories.AdamantBasicMessageFactory;
 import im.adamant.android.ui.messages_support.factories.MessageFactoryProvider;
 import im.adamant.android.ui.mvp_view.MessagesView;
@@ -35,10 +37,10 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
     private RefreshChatsInteractor refreshChatsInteractor;
     private ChatsStorage chatsStorage;
     private MessageFactoryProvider messageFactoryProvider;
-    private AccountInteractor accountInteractor;
+    private AdamantApiWrapper api;
 
     private Chat currentChat;
-    private List<AbstractMessage> messages;
+    private List<MessageListContent> messages;
     private int currentMessageCount = 0;
 
     private Disposable syncSubscription;
@@ -48,8 +50,8 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
             SendMessageInteractor sendMessageInteractor,
             RefreshChatsInteractor refreshChatsInteractor,
             MessageFactoryProvider messageFactoryProvider,
-            AccountInteractor accountInteractor,
             ChatsStorage chatsStorage,
+            AdamantApiWrapper api,
             CompositeDisposable subscriptions
     ) {
         super(subscriptions);
@@ -57,8 +59,8 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
         this.sendMessageInteractor = sendMessageInteractor;
         this.refreshChatsInteractor = refreshChatsInteractor;
         this.messageFactoryProvider = messageFactoryProvider;
-        this.accountInteractor = accountInteractor;
         this.chatsStorage = chatsStorage;
+        this.api = api;
     }
 
 
@@ -106,7 +108,7 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
                 companionId
         );
 
-        getViewState().changeTitle(currentChat.getTitle());
+        getViewState().changeTitles(currentChat.getTitle(), currentChat.getCompanionId());
 
         getViewState()
             .showChatMessages(
@@ -116,7 +118,7 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
 
     public void onResume() {
         if (currentChat != null){
-            getViewState().changeTitle(currentChat.getTitle());
+            getViewState().changeTitles(currentChat.getTitle(), currentChat.getCompanionId());
         }
     }
 
@@ -143,7 +145,7 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
         if (currentChat == null){return;}
 
         try {
-            AdamantBasicMessageFactory messageFactory = (AdamantBasicMessageFactory) messageFactoryProvider.getFactoryByType(SupportedMessageTypes.ADAMANT_BASIC);
+            AdamantBasicMessageFactory messageFactory = (AdamantBasicMessageFactory) messageFactoryProvider.getFactoryByType(SupportedMessageListContentType.ADAMANT_BASIC);
             AdamantBasicMessage messageEntity = getAdamantMessage(message, messageFactory);
             chatsStorage.addMessageToChat(messageEntity);
 
@@ -175,7 +177,7 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
     public void onChangeMessageText(String text) {
         //TODO: You need to navigate by the type of message that is being edited
         try {
-            AdamantBasicMessageFactory messageFactory = (AdamantBasicMessageFactory) messageFactoryProvider.getFactoryByType(SupportedMessageTypes.ADAMANT_BASIC);
+            AdamantBasicMessageFactory messageFactory = (AdamantBasicMessageFactory) messageFactoryProvider.getFactoryByType(SupportedMessageListContentType.ADAMANT_BASIC);
             AdamantBasicMessage messageEntity = getAdamantMessage(text, messageFactory);
 
             long cost = messageFactory.getMessageProcessor().calculateMessageCostInAdamant(messageEntity);
@@ -193,17 +195,18 @@ public class MessagesPresenter extends BasePresenter<MessagesView>{
     private AdamantBasicMessage getAdamantMessage(String message, AdamantBasicMessageFactory messageFactory) {
         AdamantBasicMessage abstractMessage = null;
         try {
+            String publicKey = api.getAccount().getPublicKey();
             abstractMessage = messageFactory.getMessageBuilder().build(
                     null,
                     message, true,
                     System.currentTimeMillis(),
-                    currentChat.getCompanionId()
+                    currentChat.getCompanionId(),
+                    publicKey
             );
         } catch (Exception e) {
             e.printStackTrace();
             router.showSystemMessage(e.getMessage());
         }
-
 
         return abstractMessage;
     }

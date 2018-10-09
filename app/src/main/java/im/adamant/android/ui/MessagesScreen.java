@@ -3,10 +3,13 @@ package im.adamant.android.ui;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +23,7 @@ import im.adamant.android.Screens;
 import im.adamant.android.presenters.MessagesPresenter;
 import im.adamant.android.ui.adapters.MessagesAdapter;
 import im.adamant.android.ui.messages_support.entities.AbstractMessage;
+import im.adamant.android.ui.messages_support.entities.MessageListContent;
 import im.adamant.android.ui.mvp_view.MessagesView;
 
 import java.io.Serializable;
@@ -65,8 +69,9 @@ public class MessagesScreen extends BaseActivity implements MessagesView {
     //--ButterKnife
     @BindView(R.id.activity_messages_rv_messages) RecyclerView messagesList;
     @BindView(R.id.activity_messages_et_new_msg_text) EditText newMessageText;
-    @BindView(R.id.activity_messages_btn_send) Button buttonSend;
+    @BindView(R.id.activity_messages_btn_send) ImageButton buttonSend;
     @BindView(R.id.activity_messages_tv_cost) TextView messageCostView;
+    @BindView(R.id.activity_messages_cl_empty_view) View emptyView;
 
     CompositeDisposable compositeDisposable = new CompositeDisposable();
 
@@ -143,11 +148,19 @@ public class MessagesScreen extends BaseActivity implements MessagesView {
     }
 
     @Override
-    public void showChatMessages(List<AbstractMessage> messages) {
+    public void showChatMessages(List<MessageListContent> messages) {
         if (messages != null){
             adapter.updateDataset(
                     messages
             );
+
+            if (messages.size() == 0){
+                emptyView.setVisibility(View.VISIBLE);
+                messagesList.setVisibility(View.GONE);
+            } else {
+                emptyView.setVisibility(View.GONE);
+                messagesList.setVisibility(View.VISIBLE);
+            }
 
             goToLastMessage();
         }
@@ -161,8 +174,9 @@ public class MessagesScreen extends BaseActivity implements MessagesView {
     }
 
     @Override
-    public void changeTitle(String title) {
+    public void changeTitles(String title, String subTitle) {
         setTitle(title);
+        setSubTitle(subTitle);
     }
 
     @Override

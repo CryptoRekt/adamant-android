@@ -2,14 +2,12 @@ package im.adamant.android.presenters;
 
 import com.arellomobile.mvp.InjectViewState;
 
-import java.math.BigDecimal;
-import java.sql.Ref;
 import java.util.concurrent.TimeUnit;
 
-import im.adamant.android.Screens;
 import im.adamant.android.core.AdamantApi;
+import im.adamant.android.currencies.SupportedCurrencyType;
 import im.adamant.android.interactors.AccountInteractor;
-import im.adamant.android.interactors.RefreshChatsInteractor;
+import im.adamant.android.ui.entities.CurrencyCardItem;
 import im.adamant.android.ui.mvp_view.WalletView;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -20,17 +18,16 @@ import ru.terrakok.cicerone.Router;
 public class WalletPresenter extends BasePresenter<WalletView> {
     private Router router;
     private AccountInteractor accountInteractor;
-    private RefreshChatsInteractor refreshChatsInteractor;
+    private Disposable lastTransfersSubscription;
+    private CurrencyCardItem currencyCardItem;
 
     public WalletPresenter(
             Router router,
             AccountInteractor accountInteractor,
-            RefreshChatsInteractor refreshChatsInteractor,
             CompositeDisposable subscription
     ) {
         super(subscription);
         this.accountInteractor = accountInteractor;
-        this.refreshChatsInteractor = refreshChatsInteractor;
         this.router = router;
     }
 
@@ -38,36 +35,61 @@ public class WalletPresenter extends BasePresenter<WalletView> {
     public void attachView(WalletView view) {
         super.attachView(view);
 
-        getViewState().displayAdamantAddress(accountInteractor.getAdamantAddress());
-
         Disposable subscribe = accountInteractor
-                .getAdamantBalance()
+                .getCurrencyItemCards()
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext((balance) -> {
-                    getViewState().displayAdamantBalance(balance);
-
-                    //TODO: With such a check, there will be an error when the user who has spent money will be asked to receive more.
-                    if (BigDecimal.ZERO.compareTo(balance) == 0){
-                        getViewState().displayFreeTokenPageButton();
-                    }
-                })
+                .doOnNext((cards) -> getViewState().showCurrencyCards(cards))
                 .doOnError((error) -> router.showSystemMessage(error.getMessage()))
+                .retryWhen((retryHandler) -> retryHandler.delay(AdamantApi.SYNCHRONIZE_DELAY_SECONDS, TimeUnit.SECONDS))
                 .repeatWhen((completed) -> completed.delay(AdamantApi.SYNCHRONIZE_DELAY_SECONDS, TimeUnit.SECONDS))
                 .subscribe();
 
         subscriptions.add(subscribe);
 
-
     }
 
-    public void onClickGetFreeTokenButton() {
-        router.navigateTo(WalletView.SHOW_FREE_TOKEN_PAGE, accountInteractor.getAdamantAddress());
+    public void onSelectCurrencyCard(CurrencyCardItem cardItem){
+
+        if (lastTransfersSubscription != null) {
+            lastTransfersSubscription.dispose();
+        }
+
+        this.currencyCardItem = cardItem;
+
+        lastTransfersSubscription = accountInteractor
+                .getLastTransfersByCurrencyAbbr(cardItem.getAbbreviation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSuccess((transfers) -> getViewState().showLastTransfers(transfers))
+                .doOnError((error) -> router.showSystemMessage(error.getMessage()))
+                .retryWhen((retryHandler) -> retryHandler.delay(AdamantApi.SYNCHRONIZE_DELAY_SECONDS, TimeUnit.SECONDS))
+                .repeatWhen((completed) -> completed.delay(AdamantApi.SYNCHRONIZE_DELAY_SECONDS, TimeUnit.SECONDS))
+                .subscribe();
     }
 
-    public void onClickExitButton() {
-        accountInteractor.logout();
-        refreshChatsInteractor.cleanUp();
-        router.navigateTo(Screens.LOGIN_SCREEN);
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (lastTransfersSubscription != null){
+            lastTransfersSubscription.dispose();
+            lastTransfersSubscription = null;
+        }
+    }
+
+    public void onClickCopyCurrentCardAddress() {
+        if (this.currencyCardItem != null){
+            getViewState().putAddressToClipboard(this.currencyCardItem.getAddress());
+        }
+    }
+
+    public void onClickCreateQrCodeCurrentCardAddress() {
+        if (this.currencyCardItem != null){
+            String address = this.currencyCardItem.getAddress();
+            if (currencyCardItem.getAbbreviation().equalsIgnoreCase(SupportedCurrencyType.ADM.name())){
+                address = "adm:" + address;
+            }
+            getViewState().createQrCode(address);
+        }
     }
 
 }

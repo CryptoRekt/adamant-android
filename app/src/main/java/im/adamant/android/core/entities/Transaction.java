@@ -1,5 +1,6 @@
 package im.adamant.android.core.entities;
 
+import im.adamant.android.core.AdamantApi;
 import im.adamant.android.core.encryption.Hex;
 import im.adamant.android.core.entities.transaction_assets.TransactionAsset;
 import im.adamant.android.core.entities.transaction_assets.TransactionChatAsset;
@@ -24,7 +25,9 @@ public class Transaction<T extends TransactionAsset> implements WithBytesDigest 
     private T asset;
 
     //TODO: maybe not a string
-    private List<String> confirmations;
+//    private List<String> confirmations;
+
+    private long confirmations;
 
     private List<String> signatures;
 
@@ -66,13 +69,18 @@ public class Transaction<T extends TransactionAsset> implements WithBytesDigest 
         this.asset = asset;
     }
 
-    public List<String> getConfirmations ()
-    {
-        return confirmations;
-    }
+//    public List<String> getConfirmations ()
+//    {
+//        return confirmations;
+//    }
 
-    public void setConfirmations (List<String> confirmations)
-    {
+//    public void setConfirmations (List<String> confirmations)
+//    {
+//        this.confirmations = confirmations;
+//    }
+
+
+    public void setConfirmations(long confirmations) {
         this.confirmations = confirmations;
     }
 
@@ -230,6 +238,11 @@ public class Transaction<T extends TransactionAsset> implements WithBytesDigest 
     public String toString()
     {
         return  this.getClass().getCanonicalName() + " [asset = " + asset + ", confirmations = " + confirmations + ", signatures = " + signatures + ", requesterPublicKey = " + requesterPublicKey + ", senderId = " + senderId + ", type = " + type + ", id = " + id + ", timestamp = " + timestamp + ", amount = " + amount + ", fee = " + fee + ", height = " + height + ", recipientId = " + recipientId + ", signSignature = " + signSignature + ", blockId = " + blockId + ", recipientPublicKey = " + recipientPublicKey + ", senderPublicKey = " + senderPublicKey + ", signature = " + signature + "]";
+    }
+
+    public long getUnixTimestamp() {
+        //Date magic transformations, see PWA code. File: lib/formatters.js line 42. Symbolically ;)
+        return (timestamp * 1000L) + AdamantApi.BASE_TIMESTAMP;
     }
 
     public byte[] getBytesDigest(){

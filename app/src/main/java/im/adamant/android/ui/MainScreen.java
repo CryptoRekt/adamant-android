@@ -1,22 +1,21 @@
 package im.adamant.android.ui;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.BottomNavigationView;
-import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewPager;
+
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import android.view.MenuItem;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.arellomobile.mvp.presenter.ProvidePresenter;
-import com.google.firebase.iid.FirebaseInstanceId;
-
-import java.io.Serializable;
-import java.lang.ref.WeakReference;
+import com.google.android.material.bottomappbar.BottomAppBar;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Provider;
 
 import butterknife.BindView;
@@ -27,9 +26,12 @@ import dagger.android.support.HasSupportFragmentInjector;
 import im.adamant.android.Constants;
 import im.adamant.android.R;
 import im.adamant.android.Screens;
+import im.adamant.android.avatars.Avatar;
 import im.adamant.android.presenters.MainPresenter;
-import im.adamant.android.ui.adapters.FragmentsAdapter;
-import im.adamant.android.ui.fragments.BaseFragment;
+import im.adamant.android.ui.fragments.BottomNavigationDrawerFragment;
+import im.adamant.android.ui.fragments.ChatsScreen;
+import im.adamant.android.ui.fragments.SettingsScreen;
+import im.adamant.android.ui.fragments.WalletScreen;
 import im.adamant.android.ui.mvp_view.MainView;
 import im.adamant.android.ui.mvp_view.PinCodeView;
 import im.adamant.android.ui.mvp_view.WalletView;
@@ -38,6 +40,7 @@ import ru.terrakok.cicerone.NavigatorHolder;
 import ru.terrakok.cicerone.commands.Command;
 import ru.terrakok.cicerone.commands.Forward;
 import ru.terrakok.cicerone.commands.SystemMessage;
+
 
 public class MainScreen extends BaseActivity implements MainView, HasSupportFragmentInjector {
     public static final String ARG_CURRENT_SCREEN = "current_screen";
@@ -60,12 +63,22 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
     @Inject
     DispatchingAndroidInjector<Fragment> fragmentDispatchingAndroidInjector;
 
-    @Named("main")
-    @Inject
-    FragmentsAdapter mainAdapterReference;
+//    @Named("main")
+//    @Inject
+//    FragmentsAdapter mainAdapterReference;
 
-    @BindView(R.id.main_screen_content) ViewPager content;
-    @BindView(R.id.main_screen_navigation) BottomNavigationView navigation;
+    @BindView(R.id.main_screen_content) FrameLayout content;
+//    @BindView(R.id.main_screen_navigation)
+//    BottomNavigationView navigation;
+
+//    @BindView(R.id.fab)
+//    FloatingActionButton fab;
+
+    @BindView(R.id.bottom_appbar)
+    BottomAppBar appBar;
+
+    @Inject
+    Avatar avatar;
 
     @Override
     public int getLayoutId() {
@@ -82,53 +95,34 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
         AndroidInjection.inject(this);
         super.onCreate(savedInstanceState);
 
-        navigation.setOnNavigationItemSelectedListener(item -> {
-            BaseFragment fragment = null;
-            switch (item.getItemId()) {
-                case R.id.navigation_wallet:
-                    presenter.onSelectedWalletTab();
-                    return true;
-                case R.id.navigation_chats:
-                    presenter.onSelectedChatsTab();
-                    return true;
-                case R.id.navigation_settings:
-                    presenter.onSelectedSettingsTab();
-                    return true;
-            }
-            return false;
-        });
-
-        content.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
-            }
-
-            @Override
-            public void onPageSelected(int position) {
-                setTitle(mainAdapterReference.getPageTitle(position));
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) {
-
-            }
-        });
-
-        content.setAdapter(mainAdapterReference);
-        setTitle(mainAdapterReference.getPageTitle(0));
+        setSupportActionBar(appBar);
     }
 
+    @Override
+    public void showWalletScreen() {
+        final FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.main_screen_content, new WalletScreen());
+        transaction.commit();
+    }
 
+    @Override
+    public void showChatsScreen() {
+        final FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.main_screen_content, new ChatsScreen());
+        transaction.commit();
+    }
+
+    @Override
+    public void showSettingsScreen() {
+        final FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.main_screen_content, new SettingsScreen());
+        transaction.commit();
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
         navigatorHolder.setNavigator(navigator);
-
-        if (mainAdapterReference != null){
-            setTitle(mainAdapterReference.getPageTitle(content.getCurrentItem()));
-        }
     }
 
     @Override
@@ -152,6 +146,19 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
         return fragmentDispatchingAndroidInjector;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case android.R.id.home: {
+                FragmentManager supportFragmentManager = getSupportFragmentManager();
+                BottomNavigationDrawerFragment bottomNavDrawerFragment = new BottomNavigationDrawerFragment();
+                bottomNavDrawerFragment.show(supportFragmentManager, bottomNavDrawerFragment.getTag());
+
+                return true;
+            }
+        }
+        return false;
+    }
 
     private Navigator navigator = new Navigator() {
         @Override
@@ -187,29 +194,6 @@ public class MainScreen extends BaseActivity implements MainView, HasSupportFrag
                         MainScreen.this.finish();
                     }
                     break;
-
-                    case Screens.WALLET_SCREEN: {
-                        content.setCurrentItem(0);
-                    }
-                    break;
-
-                    case Screens.CHATS_SCREEN: {
-                        content.setCurrentItem(1);
-                    }
-                    break;
-
-                    case Screens.SETTINGS_SCREEN: {
-                        content.setCurrentItem(2);
-                    }
-                    break;
-
-                    case WalletView.SHOW_FREE_TOKEN_PAGE : {
-                        String url = getString(R.string.free_token_url) + forward.getTransitionData();
-                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                        startActivity(browserIntent);
-                    }
-                    break;
-
                     case Screens.SPLASH_SCREEN: {
                         Intent intent = new Intent(getApplicationContext(), SplashScreen.class);
                         startActivity(intent);

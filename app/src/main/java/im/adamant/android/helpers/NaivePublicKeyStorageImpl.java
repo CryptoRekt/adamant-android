@@ -15,6 +15,7 @@ public class NaivePublicKeyStorageImpl implements PublicKeyStorage {
         this.api = api;
     }
 
+    //TODO: Return Flowable and you may use zip operator.
     @Override
     public String getPublicKey(String address) {
         if (!publicKeys.containsKey(address)){
@@ -24,7 +25,7 @@ public class NaivePublicKeyStorageImpl implements PublicKeyStorage {
                 if (response.isSuccess()){
                     publicKeys.put(address, response.getPublicKey());
                 }
-            } catch (UndeliverableException ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
 
